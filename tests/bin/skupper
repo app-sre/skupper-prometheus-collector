@@ -1,0 +1,14 @@
+#!/bin/bash
+
+cat - << EOF
+
+Links created from this site:
+-------------------------------
+There are no links configured or active
+
+Currently active links from other sites:
+----------------------------------------
+context deadline exceeded
+
+
+EOF

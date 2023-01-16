@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     service_controller_timeout: int = 5
     port: int = 8000
     log_level: str = "INFO"
+    skupper_binary: str = "/opt/app-root/src/bin/skupper"
+    skupper_binary_timeout: int = 2
 
     class Config:
         env_prefix = "spc_"

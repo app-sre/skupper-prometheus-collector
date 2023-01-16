@@ -28,14 +28,17 @@ def app() -> None:
     REGISTRY.register(
         SkupperCollector(
             service_controller=settings.service_controller,
-            timeout=settings.service_controller_timeout,
+            service_controller_timeout=settings.service_controller_timeout,
+            skupper_binary=settings.skupper_binary,
+            skupper_binary_timeout=settings.skupper_binary_timeout,
         )
     )
     # disable standard prometheus metrics
     REGISTRY.unregister(GC_COLLECTOR)
     REGISTRY.unregister(PLATFORM_COLLECTOR)
     REGISTRY.unregister(PROCESS_COLLECTOR)
-    start_http_server(port=settings.port)
+    start_http_server(port=settings.port, addr="0.0.0.0")
+    log.info(f"Serving metrics on  http://0.0.0.0:{settings.port}")
     while True:
         time.sleep(5)
 
