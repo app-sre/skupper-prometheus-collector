@@ -73,7 +73,7 @@ def link_status(skupper_link_status_output: str) -> list[tuple[str, bool]]:
         if parse_lines and line:
             # "Links created from this site" section
             link_name = line.split(" ")[1]
-            active = True if "is active" in line else False
+            active = True if "is connected" in line else False
             link_stats.append((link_name, active))
             continue
 
