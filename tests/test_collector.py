@@ -76,7 +76,7 @@ context deadline exceeded
             """
 Links created from this site:
 -------------------------------
-Link site-01 is active
+Link site-01 is connected
 
 Currently active links from other sites:
 ----------------------------------------
@@ -88,7 +88,7 @@ context deadline exceeded
             """
 Links created from this site:
 -------------------------------
-Link site-01 is not active
+Link site-01 is not connected
 
 Currently active links from other sites:
 ----------------------------------------
@@ -100,8 +100,8 @@ context deadline exceeded
             """
 Links created from this site:
 -------------------------------
-Link site-01 is active
-Link site-02 is active
+Link site-01 is connected
+Link site-02 is connected
 
 Currently active links from other sites:
 ----------------------------------------
@@ -113,8 +113,8 @@ context deadline exceeded
             """
 Links created from this site:
 -------------------------------
-Link site-01 is active
-Link site-02 is not active
+Link site-01 is connected
+Link site-02 is not connected
 
 Currently active links from other sites:
 ----------------------------------------
@@ -126,9 +126,9 @@ context deadline exceeded
             """
 Links created from this site:
 -------------------------------
-Link site-01 is active
-Link site-02 is not active
-Link site-03 is active
+Link site-01 is connected
+Link site-02 is not connected
+Link site-03 is connected
 
 Currently active links from other sites:
 ----------------------------------------
