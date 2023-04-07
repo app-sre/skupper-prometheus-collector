@@ -28,6 +28,8 @@ def app() -> None:
     REGISTRY.register(
         SkupperCollector(
             service_controller=settings.service_controller,
+            service_controller_token=settings.service_controller_token,
+            service_controller_ca_file=settings.service_controller_ca_file,
             service_controller_timeout=settings.service_controller_timeout,
             skupper_binary=settings.skupper_binary,
             skupper_binary_timeout=settings.skupper_binary_timeout,

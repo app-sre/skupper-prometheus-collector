@@ -7,6 +7,14 @@ import pytest
 from skupper_prometheus_collector import collector
 
 
+@pytest.fixture
+def skupper_collector(fake_skupper_cli: str) -> collector.SkupperCollector:
+    """Return a SkupperCollector instance."""
+    return collector.SkupperCollector(
+        "http://service-controller:1234", "token", "ca_file", 1, fake_skupper_cli, 1
+    )
+
+
 def test_service_controller_stats(httpretty: httpretty_module) -> None:
     """Test service_controller_stats."""
     url = "http://service-controller:1234/foobar"
@@ -14,15 +22,16 @@ def test_service_controller_stats(httpretty: httpretty_module) -> None:
     httpretty.register_uri(
         httpretty.GET, url, body=json.dumps({"key": "value"}), content_type="text/json"
     )
-    assert collector.service_controller_stats(url, 1) == {"key": "value"}
+    assert collector.service_controller_stats(url, "token", "ca_file", 1) == {
+        "key": "value"
+    }
 
 
-def test_skupper_collector_compile_metrics(fake_skupper_cli: str) -> None:
+def test_skupper_collector_compile_metrics(
+    skupper_collector: collector.SkupperCollector,
+) -> None:
     """Test SkupperCollector.compile_metrics."""
     stats = json.loads((Path(__file__).parent / "fixtures/stats.json").read_text())
-    skupper_collector = collector.SkupperCollector(
-        "http://service-controller:1234", 1, fake_skupper_cli, 1
-    )
     metrics = list(skupper_collector.compile_service_controller_metrics(stats))
     assert len(metrics) == 4
     assert metrics[0].name == "skupper_site_spec"
@@ -35,15 +44,13 @@ def test_skupper_collector_compile_metrics(fake_skupper_cli: str) -> None:
     assert len(metrics[3].samples) == 1
 
 
-def test_skupper_collector_collect(fake_skupper_cli: str) -> None:
+def test_skupper_collector_collect(
+    skupper_collector: collector.SkupperCollector,
+) -> None:
     """Test SkupperCollector.collect."""
 
-    def fake_request(url: str, timeout: int) -> dict:
+    def fake_request(url: str, token: str, ca_file: str, timeout: int) -> dict:
         return {"key": "value"}
-
-    skupper_collector = collector.SkupperCollector(
-        "http://service-controller:1234", 1, fake_skupper_cli, 1
-    )
 
     assert (
         len(
