@@ -1,0 +1,196 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  template: skupper-prometheus-collector
+metadata:
+  name: skupper-prometheus-collector
+  annotations:
+    description: skupper-prometheus-collector
+objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: skupper-prometheus-collector
+    labels:
+      app.kubernetes.io/component: prometheus-exporter
+      app.kubernetes.io/name: skupper-prometheus-collector
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: skupper-prometheus-collector-service-account
+    annotations:
+      kubernetes.io/service-account.name: skupper-prometheus-collector
+  type: kubernetes.io/service-account-token
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app.kubernetes.io/component: prometheus-exporter
+      app.kubernetes.io/name: skupper-prometheus-collector
+    name: skupper-prometheus-collector
+  spec:
+    replicas: ${{SPC_PROM_EXPORTER_REPLICAS}}
+    selector:
+      matchLabels:
+        app.kubernetes.io/component: prometheus-exporter
+        app.kubernetes.io/name: skupper-prometheus-collector
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/component: prometheus-exporter
+          app.kubernetes.io/name: skupper-prometheus-collector
+      spec:
+        restartPolicy: Always
+        serviceAccountName: skupper-prometheus-collector
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                  - prometheus-exporter
+              topologyKey: "kubernetes.io/hostname"
+        containers:
+        - env:
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: SPC_PORT
+            value: "${SPC_PORT}"
+          - name: SPC_SERVICE_CONTROLLER
+            value: "https://${SPC_SKUPPER_SERVICE}.$(NAMESPACE).svc/DATA"
+          - name: SPC_SERVICE_CONTROLLER_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: skupper-prometheus-collector-service-account
+                key: token
+          - name: SPC_SERVICE_CONTROLLER_CA_FILE
+            value: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+          - name: SPC_SERVICE_CONTROLLER_TIMEOUT
+            value: "${SPC_SERVICE_CONTROLLER_TIMEOUT}"
+          - name: SPC_LOG_LEVEL
+            value: "${SPC_LOG_LEVEL}"
+          - name: SPC_SKUPPER_BINARY
+            value: "${SPC_SKUPPER_BINARY}"
+          - name: SPC_SKUPPER_BINARY_TIMEOUT
+            value: "${SPC_SKUPPER_BINARY_TIMEOUT}"
+          image: "${IMAGE}:${IMAGE_TAG}"
+          name: prometheus-exporter
+          ports:
+          - containerPort: ${{SPC_PORT}}
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sh
+                  - "-c"
+                  - sleep 5
+          readinessProbe:
+            httpGet:
+              # this serves a 200 and empty body per default
+              path: /favicon.ico
+              port: ${{SPC_PORT}}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              # this serves a 200 and empty body per default
+              path: /favicon.ico
+              port: ${{SPC_PORT}}
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: ${{SPC_PROM_EXPORTER_CPU_REQUESTS}}
+              memory: ${{SPC_PROM_EXPORTER_MEMORY_REQUESTS}}
+            limits:
+              cpu: ${{SPC_PROM_EXPORTER_CPU_LIMITS}}
+              memory: ${{SPC_PROM_EXPORTER_MEMORY_LIMITS}}
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app.kubernetes.io/component: prometheus-exporter
+      app.kubernetes.io/name: skupper-prometheus-collector
+    name: skupper-prometheus-collector
+  spec:
+    ports:
+    - name: "8000"
+      port: ${{SPC_PORT}}
+      targetPort: ${{SPC_PORT}}
+    selector:
+      app.kubernetes.io/component: prometheus-exporter
+      app.kubernetes.io/name: skupper-prometheus-collector
+
+parameters:
+- name: IMAGE
+  description: Image to use for skupper-prometheus-collector
+  value: "quay.io/app-sre/skupper-prometheus-collector"
+  required: true
+
+- name: IMAGE_TAG
+  description: skupper-prometheus-collector version
+  value: "latest"
+  required: true
+
+- name: SPC_PORT
+  description: skupper-prometheus-collector port
+  value: "8000"
+  required: true
+
+- name: SPC_SKUPPER_SERVICE
+  description: skupper service name
+  value: "skupper"
+  required: true
+
+- name: SPC_SERVICE_CONTROLLER_TIMEOUT
+  description: timeout for skupper service controller
+  value: "5"
+  required: true
+
+- name: SPC_LOG_LEVEL
+  description: log level for skupper-prometheus-collector
+  value: "INFO"
+  required: true
+
+- name: SPC_SKUPPER_BINARY
+  description: path to skupper cli
+  value: "/opt/app-root/src/bin/skupper"
+  required: true
+
+- name: SPC_SKUPPER_BINARY_TIMEOUT
+  description: timeout for skupper cli
+  value: "2"
+  required: true
+
+# Pod limits
+- name: SPC_PROM_EXPORTER_REPLICAS
+  description: Prometheus export replicas
+  value: "3"
+  required: true
+
+- name: SPC_PROM_EXPORTER_MEMORY_REQUESTS
+  description: Prometheus export memory requests
+  value: "128Mi"
+  required: true
+
+- name: SPC_PROM_EXPORTER_MEMORY_LIMITS
+  description: Prometheus export memory limits
+  value: "128Mi"
+  required: true
+
+- name: SPC_PROM_EXPORTER_CPU_REQUESTS
+  description: Prometheus export cpu requests
+  value: "100m"
+  required: true
+
+- name: SPC_PROM_EXPORTER_CPU_LIMITS
+  description: Prometheus export cpu limits
+  value: "300m"
+  required: true
