@@ -18,11 +18,21 @@ from prometheus_client.registry import Collector
 log = logging.getLogger(__name__)
 
 
-def service_controller_stats(service_controller: str, timeout: int) -> dict[str, Any]:
+def service_controller_stats(
+    service_controller: str,
+    token: str,
+    ca_file: str,
+    timeout: int,
+) -> dict[str, Any]:
     """Fetch stats (/DATA) from service controller pod."""
     try:
         log.debug(f"Fetching data from service controller {service_controller}")
-        response = requests.get(service_controller, timeout=timeout)
+        response = requests.get(
+            service_controller,
+            timeout=timeout,
+            headers={"Authorization": f"Bearer {token}"} if token else {},
+            verify=ca_file if ca_file else None,
+        )
         response.raise_for_status()
     except requests.exceptions.RequestException as exc:
         raise RuntimeError("Unable to fetch data from service controller") from exc
@@ -88,11 +98,15 @@ class SkupperCollector(Collector):
     def __init__(
         self,
         service_controller: str,
+        service_controller_token: str,
+        service_controller_ca_file: str,
         service_controller_timeout: int,
         skupper_binary: str,
         skupper_binary_timeout: int,
     ) -> None:
         self.service_controller = service_controller
+        self.service_controller_token = service_controller_token
+        self.service_controller_ca_file = service_controller_ca_file
         self.service_controller_timeout = service_controller_timeout
         self.skupper_binary = skupper_binary
         self.skupper_binary_timeout = skupper_binary_timeout
@@ -170,11 +184,14 @@ class SkupperCollector(Collector):
     def collect(
         self,
         fetch_service_controller_stats_func: Callable[
-            [str, int], Mapping[str, list[Mapping[str, Any]]]
+            [str, str, str, int], Mapping[str, list[Mapping[str, Any]]]
         ] = service_controller_stats,
     ) -> Generator[Metric, None, None]:
         stats = fetch_service_controller_stats_func(
-            self.service_controller, self.service_controller_timeout
+            self.service_controller,
+            self.service_controller_token,
+            self.service_controller_ca_file,
+            self.service_controller_timeout,
         )
         yield from self.compile_service_controller_metrics(stats)
 

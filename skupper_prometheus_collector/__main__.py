@@ -38,7 +38,7 @@ def app() -> None:
     REGISTRY.unregister(PLATFORM_COLLECTOR)
     REGISTRY.unregister(PROCESS_COLLECTOR)
     start_http_server(port=settings.port, addr="0.0.0.0")
-    log.info(f"Serving metrics on  http://0.0.0.0:{settings.port}")
+    log.info(f"Serving metrics on http://0.0.0.0:{settings.port}")
     while True:
         time.sleep(5)
 
